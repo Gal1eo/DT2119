@@ -116,3 +116,54 @@ class WaveNetModel(nn.Module):
 
             return output
 
+        def export_weights(self):
+            """
+            Returns a dictionary with tensors ready for load
+            """
+            model = {}
+            # We're not using a convolution to start to this does nothing
+            model["embedding_prev"] = torch.cuda.FloatTensor(self.output_channels,
+                                                             self.residual_channels).fill_(0.0)
+
+            model["embedding_curr"] = self.embed.weight.data
+            model["conv_out_weight"] = self.conv_out.conv.weight.data
+            model["conv_end_weight"] = self.conv_end.conv.weight.data
+
+            dilate_weights = []
+            dilate_biases = []
+            for layer in self.dilate_layers:
+                dilate_weights.append(layer.conv.weight.data)
+                dilate_biases.append(layer.conv.bias.data)
+            model["dilate_weights"] = dilate_weights
+            model["dilate_biases"] = dilate_biases
+
+            model["max_dilation"] = self.max_dilation
+
+            residual_weights = []
+            residual_biases = []
+            for layer in self.res_layers:
+                residual_weights.append(layer.conv.weight.data)
+                residual_biases.append(layer.conv.bias.data)
+            model["res_weights"] = residual_weights
+            model["res_biases"] = residual_biases
+
+            skip_weights = []
+            skip_biases = []
+            for layer in self.skip_layers:
+                skip_weights.append(layer.conv.weight.data)
+                skip_biases.append(layer.conv.bias.data)
+            model["skip_weights"] = skip_weights
+            model["skip_biases"] = skip_biases
+
+            model["use_embed_tanh"] = False
+
+            return model
+
+
+    def generate(self,
+                 num_samples,
+                 first_samples=None,
+                 temperature=1.0):
+        self.eval()
+        if first_samples is None:
+            first_samples

@@ -71,7 +71,7 @@ class WaveNetModel(nn.Module):
         for layer in range(layers):
             dilation = 2 ** dilation_factor
 
-            self.dilate_lays.append(Conv(residual_channels, 2*residual_channels,
+            self.dilate_layers.append(Conv(residual_channels, 2*residual_channels,
                              kernel_size=2, dilation= dilation,
                              init_gain='tanh', is_causal=True))
 
@@ -82,88 +82,81 @@ class WaveNetModel(nn.Module):
             self.skip_layers.append(Conv(residual_channels, skip_channels,
                                          init_gain='relu'))
 
-        def forward(self, forward_input):
-            forward_input = self.embed(forward_input.long())
-            forward_input = forward_input.transpose(1,2)
+    def forward(self, forward_input):
+        forward_input = self.embed(forward_input.long())[0]
+        forward_input = forward_input.transpose(1,2)
 
-            for layer in range(self.layers):
-                in_act = self.dilate_layers[layer](forward_input)
-                t_act = F.tanh(in_act[:,:self.residual_channels,:])
-                s_act = F.sigmoid(in_act[:,:self.residual_channels,:])
-                act = t_act * s_act
-                if layer < len(self.residual_layers):
-                    res_acts = self.residual_layers[layer](act)
-                forward_input = res_acts + forward_input
+        for layer in range(self.layers):
+            in_act = self.dilate_layers[layer](forward_input)
+            t_act = F.tanh(in_act[:,:self.residual_channels,:])
+            s_act = F.sigmoid(in_act[:,:self.residual_channels,:])
+            act = t_act * s_act
+            if layer < len(self.residual_layers):
+                res_acts = self.residual_layers[layer](act)
+            forward_input = res_acts + forward_input
 
-                if layer == 0:
-                    output = self.skip_layers[layer](act)
-                else:
-                    output = output + self.skip_layers[layer](act)
+            if layer == 0:
+                output = self.skip_layers[layer](act)
+            else:
+                output = output + self.skip_layers[layer](act)
 
-            output = F.relu(output, True)
-            output = self.conv_out(output)
-            output = F.relu(output, True)
-            output = self.conv_end(output)
+        output = F.relu(output, True)
+        output = self.conv_out(output)
+        output = F.relu(output, True)
+        output = self.conv_end(output)
 
-            # remove last probability
-            last = output[:, :, -1]
-            last = last.unsqueeze(2)
-            output = output[:, :, :-1]
+        # remove last probability
+        last = output[:, :, -1]
+        last = last.unsqueeze(2)
+        output = output[:, :, :-1]
 
-            # repalce first probablity with 0s
-            first = last * 0.0
-            output = torch.cat((first, output), dim=2)
+        # repalce first probablity with 0s
+        first = last * 0.0
+        output = torch.cat((first, output), dim=2)
 
-            return output
-
-        def export_weights(self):
-            """
-            Returns a dictionary with tensors ready for load
-            """
-            model = {}
-            # We're not using a convolution to start to this does nothing
-            model["embedding_prev"] = torch.cuda.FloatTensor(self.output_channels,
-                                                             self.residual_channels).fill_(0.0)
-
-            model["embedding_curr"] = self.embed.weight.data
-            model["conv_out_weight"] = self.conv_out.conv.weight.data
-            model["conv_end_weight"] = self.conv_end.conv.weight.data
-
-            dilate_weights = []
-            dilate_biases = []
-            for layer in self.dilate_layers:
-                dilate_weights.append(layer.conv.weight.data)
-                dilate_biases.append(layer.conv.bias.data)
-            model["dilate_weights"] = dilate_weights
-            model["dilate_biases"] = dilate_biases
-
-            model["max_dilation"] = self.max_dilation
-
-            residual_weights = []
-            residual_biases = []
-            for layer in self.res_layers:
-                residual_weights.append(layer.conv.weight.data)
-                residual_biases.append(layer.conv.bias.data)
-            model["res_weights"] = residual_weights
-            model["res_biases"] = residual_biases
-
-            skip_weights = []
-            skip_biases = []
-            for layer in self.skip_layers:
-                skip_weights.append(layer.conv.weight.data)
-                skip_biases.append(layer.conv.bias.data)
-            model["skip_weights"] = skip_weights
-            model["skip_biases"] = skip_biases
-
-            model["use_embed_tanh"] = False
-
-            return model
+        return output
 
 
-    def generate(self,
-                 num_samples,
-                 first_samples=None,
-                 temperature=1.0):
-        self.eval()
-        if first_samples is None:
-            first_samples
+    def export_weights(self):
+        """
+        Returns a dictionary with tensors ready for load
+        """
+        model = {}
+        # We're not using a convolution to start to this does nothing
+        model["embedding_prev"] = torch.cuda.FloatTensor(self.output_channels,
+                                                         self.residual_channels).fill_(0.0)
+
+        model["embedding_curr"] = self.embed.weight.data
+        model["conv_out_weight"] = self.conv_out.conv.weight.data
+        model["conv_end_weight"] = self.conv_end.conv.weight.data
+
+        dilate_weights = []
+        dilate_biases = []
+        for layer in self.dilate_layers:
+            dilate_weights.append(layer.conv.weight.data)
+            dilate_biases.append(layer.conv.bias.data)
+        model["dilate_weights"] = dilate_weights
+        model["dilate_biases"] = dilate_biases
+
+        model["max_dilation"] = self.max_dilation
+
+        residual_weights = []
+        residual_biases = []
+        for layer in self.res_layers:
+            residual_weights.append(layer.conv.weight.data)
+            residual_biases.append(layer.conv.bias.data)
+        model["res_weights"] = residual_weights
+        model["res_biases"] = residual_biases
+
+        skip_weights = []
+        skip_biases = []
+        for layer in self.skip_layers:
+            skip_weights.append(layer.conv.weight.data)
+            skip_biases.append(layer.conv.bias.data)
+        model["skip_weights"] = skip_weights
+        model["skip_biases"] = skip_biases
+
+        model["use_embed_tanh"] = False
+
+        return model
+

@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from scipy.io.wavfile import read
+import os
 MAX_WAV_VALUE = 32768.0
 
 def load_wav_to_torch(full_path):
@@ -16,6 +17,7 @@ def file_to_list(filename):
     :param filename:
     :return: a list of filenames
     """
+    #filename = os.path.join('dataset', filename)
     with open(filename, encoding='utf-8') as f:
         files = f.readlines()
 

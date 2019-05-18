@@ -14,7 +14,7 @@ from utils import to_gpu
 class CrossEntropyLoss(nn.Module):
     def __init__(self):
         super(CrossEntropyLoss, self).__init__()
-        self.num_classes = wavenet_config["n_out_channels"]
+        self.num_classes = wavenet_config["output_channels"]
 
     def forward(self, inputs, targets):
         """
@@ -70,27 +70,28 @@ def train(output_directory, epochs, learning_rate,
         iteration += 1  # next iteration is iteration + 1
 
     trainset = OneHot(**data_config)
-    train_loader = DataLoader(trainset, num_workers=1, shuffle=False,
-                              sampler=None,
+    train_loader = DataLoader(trainset,
+                              shuffle=False,
+                              num_workers=1,
                               batch_size=batch_size,
                               pin_memory=False,
-                              drop_last=True)
+                              drop_last=False)
 
     model.train()
-    epoch_offset = max(0, int(iteration / len(train_loader)))
-
+   # epoch_offset = max(0, int(iteration / len(train_loader)))
+    epoch_offset = 0
     for epoch in range(epoch_offset, epochs):
         print("Epoch: {}".format(epoch))
         for i, batch in enumerate(train_loader):
             model.zero_grad()
 
             x = batch
-            x = to_gpu(x).float()
+            x = to_gpu(x).long()
             #y = to_gpu(y)
             #x = (x, y)
             y_pred = model(x)
             loss = criterion(y_pred, x)
-            reduced_loss = loss.data[0]
+            reduced_loss = loss.data
             loss.backward()
             optimizer.step()
 
@@ -98,19 +99,26 @@ def train(output_directory, epochs, learning_rate,
 
             if (iteration % iters_per_checkpoint == 0):
                 checkpoint_path = "{}/wavenet_{}".format(output_directory, iteration)
+                #if not os.path.exists(checkpoint_path):
+                #    os.mkdir(checkpoint_path)
                 save_checkpoint(model, optimizer, learning_rate, iteration,
                                 checkpoint_path)
 
             iteration += 1
 
+def genetrate(input, model):
+    model.cuda()
+    model.eval()
+    #input =
+    generation = model(input)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str,
+    parser.add_argument('-c', '--config', type=str, default='config.json',
                         help='JSON file for configuration')
-    parser.add_argument('-r', '--rank', type=int, default=0,
-                        help='rank of process for distributed')
-    #parser.add_argument('-g', '--group_name', type=str, default='',
+    # parser.add_argument('-r', '--rank', type=int, default=0,
+    #                   help='rank of process for distributed')
+    # parser.add_argument('-g', '--group_name', type=str, default='',
     #                    help='name of group for distributed')
     args = parser.parse_args()
 

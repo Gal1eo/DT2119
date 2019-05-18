@@ -11,7 +11,7 @@ import utils
 class OneHot(torch.utils.data.Dataset):
     def __init__(self, training_files, segment_length, mu_quantization,
                  filter_length, sampling_rate):
-
+        training_files = os.path.join('dataset', training_files)
         self.audio_files = utils.file_to_list(training_files)
         random.seed(123)
         random.shuffle(self.audio_files)
@@ -21,6 +21,7 @@ class OneHot(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         filename = self.audio_files[index]
+        filename = os.path.join('dataset', filename)
         audio, sampling_rate = utils.load_wav_to_torch(filename)
         if sampling_rate != self.sampling_rate:
             raise ValueError("Sampling rate doesn't math")

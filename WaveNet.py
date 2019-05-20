@@ -105,15 +105,15 @@ class WaveNetModel(nn.Module):
         output = F.relu(output, True)
         output = self.conv_end(output)
         output = F.softmax(output,dim=1)
-
+        b = output.argmax(dim=1)
         # remove last probability
-        last = output[:, :, -1]
-        last = last.unsqueeze(2)
-        output = output[:, :, :-1]
+        #last = output[:, :, -1]
+        #last = last.unsqueeze(2)
+        #output = output[:, :, :-1]
 
         # repalce first probablity with equal probabilities
-        first = last * 0.0 + 1/self.output_channels
-        output = torch.cat((first, output), dim=2)
+        #first = last * 0.0 + 1/self.output_channels
+        #output = torch.cat((first, output), dim=2)
 
         return output
 

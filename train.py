@@ -3,13 +3,15 @@ import json
 import os
 import time
 import torch
+import numpy as np
 import torch.nn as nn
 
+from scipy.io.wavfile import write
 from torch.utils.data import DataLoader
 from WaveNet import WaveNetModel
 from Onehot import OneHot
-from utils import to_gpu
-from utils import mu_law_decode
+from utils import *
+
 
 
 class CrossEntropyLoss(nn.Module):
@@ -96,7 +98,15 @@ def train(output_directory, epochs, learning_rate,
             reduced_loss = loss.data
             loss.backward()
             optimizer.step()
-
+            '''
+            music = y_pred.argmax(dim=1)
+            music = music.transpose(0,1)
+            music = mu_law_decode(music, 256) * MAX_WAV_VALUE
+            music = music.cpu()
+            music = music.numpy()
+            scaled = np.int16(music)
+            write("a.wav", 44100, scaled)
+            '''
             print("{}:\t{:.9f}".format(iteration, reduced_loss))
 
             if (iteration % iters_per_checkpoint == 0):
@@ -107,19 +117,28 @@ def train(output_directory, epochs, learning_rate,
                                 checkpoint_path)
 
             iteration += 1
-
-def genetrate(inputfile, model):
-    model.cuda()
+'''
+def genetrate(eval_files, checkpoint_path):
+    model = WaveNetModel(**wavenet_config).cuda()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    model, optimizer, iteration = load_checkpoint(checkpoint_path, model,
+                                                      optimizer)
     model.eval()
-    evalset = OneHot(**eval_config)
-    train_loader = DataLoader(evalset,
-                              shuffle=False,
-                              num_workers=1,
-                              batch_size=1,
-                              pin_memory=False,
-                              drop_last=False)
-    generation = model(input)
+    eval_files = os.path.join('dataset', eval_files)
+    filename = file_to_list(eval_files)
+    filepath = os.path.join('dataset', filename[0])
+    audio, sampling_rate = load_wav_to_torch(filepath)
 
+    audio = audio[0:44100]
+    input = mu_law_encode(audio / MAX_WAV_VALUE, 256)
+    input = to_gpu(input)
+    a = input.unsqueeze(0)
+    output = model(a)
+    generation = output.argmax(dim = 1)
+    music = mu_law_decode(generation, 256)
+
+    return music
+'''
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config', type=str, default='config.json',
@@ -149,3 +168,4 @@ if __name__ == "__main__":
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = False
     train(**train_config)
+    #music = genetrate(**eval_config)

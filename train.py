@@ -98,7 +98,7 @@ def train(output_directory, epochs, learning_rate,
             reduced_loss = loss.data
             loss.backward()
             optimizer.step()
-            '''
+
             music = y_pred.argmax(dim=1)
             music = music.transpose(0,1)
             music = mu_law_decode(music, 256) * MAX_WAV_VALUE
@@ -106,7 +106,7 @@ def train(output_directory, epochs, learning_rate,
             music = music.numpy()
             scaled = np.int16(music)
             write("a.wav", 44100, scaled)
-            '''
+
             print("{}:\t{:.9f}".format(iteration, reduced_loss))
 
             if (iteration % iters_per_checkpoint == 0):

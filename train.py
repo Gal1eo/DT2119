@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from WaveNet import WaveNetModel
 from Onehot import OneHot
 from utils import to_gpu
+from utils import mu_law_decode
 
 
 class CrossEntropyLoss(nn.Module):
@@ -78,14 +79,15 @@ def train(output_directory, epochs, learning_rate,
                               drop_last=False)
 
     model.train()
-   # epoch_offset = max(0, int(iteration / len(train_loader)))
-    epoch_offset = 0
+    epoch_offset = max(0, int(iteration / len(train_loader)))
+    #epoch_offset = 0
     for epoch in range(epoch_offset, epochs):
         print("Epoch: {}".format(epoch))
         for i, batch in enumerate(train_loader):
             model.zero_grad()
 
             x = batch
+            x = x.transpose(1,2)
             x = to_gpu(x).long()
             #y = to_gpu(y)
             #x = (x, y)
@@ -106,10 +108,16 @@ def train(output_directory, epochs, learning_rate,
 
             iteration += 1
 
-def genetrate(input, model):
+def genetrate(inputfile, model):
     model.cuda()
     model.eval()
-    #input =
+    evalset = OneHot(**eval_config)
+    train_loader = DataLoader(evalset,
+                              shuffle=False,
+                              num_workers=1,
+                              batch_size=1,
+                              pin_memory=False,
+                              drop_last=False)
     generation = model(input)
 
 if __name__ == "__main__":
@@ -133,6 +141,8 @@ if __name__ == "__main__":
     dist_config = config["dist_config"]
     global wavenet_config
     wavenet_config = config["wavenet_config"]
+    global eval_config
+    eval_config = config["eval_config"]
 
     #num_gpus = torch.cuda.device_count()
 

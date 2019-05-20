@@ -10,13 +10,11 @@ class Conv(nn.Module):
     A convolution with the option to be causal and use xavier initialization
     """
     def __init__(self, input_channels, output_channels, kernel_size=1, stride=1,
-                 dilation=1, bias=False, init_gain='linear', is_causal=False):
+                 dilation=1, bias=True, init_gain='linear', is_causal=False):
         super(Conv, self).__init__()
         self.is_causal = is_causal
         self.kernel_size = kernel_size
         self.dilation = dilation
-        #self.stride = stride
-        #self.bias = bias
         self.conv = nn.Conv1d(input_channels, output_channels,
                                     kernel_size=kernel_size, stride=stride,
                                     dilation=dilation, bias=bias)
@@ -83,7 +81,9 @@ class WaveNetModel(nn.Module):
                                          init_gain='relu'))
 
     def forward(self, forward_input):
-        forward_input = self.embed(forward_input.long())[0]
+        a = forward_input[0]
+        # forward_input = a.transpose(0,1)
+        forward_input = self.embed(a.long())
         forward_input = forward_input.transpose(1,2)
 
         for layer in range(self.layers):
@@ -104,14 +104,15 @@ class WaveNetModel(nn.Module):
         output = self.conv_out(output)
         output = F.relu(output, True)
         output = self.conv_end(output)
+        output = F.softmax(output,dim=1)
 
         # remove last probability
         last = output[:, :, -1]
         last = last.unsqueeze(2)
         output = output[:, :, :-1]
 
-        # repalce first probablity with 0s
-        first = last * 0.0
+        # repalce first probablity with equal probabilities
+        first = last * 0.0 + 1/self.output_channels
         output = torch.cat((first, output), dim=2)
 
         return output

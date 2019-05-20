@@ -24,6 +24,7 @@ class OneHot(torch.utils.data.Dataset):
         filename = os.path.join('dataset', filename)
         audio, sampling_rate = utils.load_wav_to_torch(filename)
         if sampling_rate != self.sampling_rate:
+            print(filename)
             raise ValueError("Sampling rate doesn't math")
 
         if audio.size(0) >= self.segment_length:

@@ -11,7 +11,7 @@
 
     "data_config": {
         "training_files": "train_files.txt",
-        "segment_length": 22050,
+        "segment_length": 4410,
         "mu_quantization": 256,
         "filter_length": 800,
         "sampling_rate": 44100
@@ -24,7 +24,7 @@
 
     "wavenet_config": {
         "input_channels": 256,
-        "layers": 7,
+        "layers": 8,
         "max_dilation": 128,
         "residual_channels": 32,
         "skip_channels": 128,
@@ -32,5 +32,14 @@
         "cond_channels": 80,
         "upsample_window": 800,
         "upsample_stride": 200
+    },
+
+    "eval_config": {
+        "training_files": "eval_files.txt",
+        "segment_length": 4410,
+        "mu_quantization": 256,
+        "filter_length": 800,
+        "sampling_rate": 44100
     }
 }
+

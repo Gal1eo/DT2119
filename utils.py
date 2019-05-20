@@ -33,6 +33,17 @@ def to_gpu(x):
     return torch.autograd.Variable(x)
 
 
+def mu_law_decode(x, mu_quantization=256):
+    assert(torch.max(x) <= mu_quantization)
+    assert(torch.min(x) >= 0)
+    x = x.float()
+    mu = mu_quantization - 1.
+    # Map values back to [-1, 1].
+    signal = 2 * (x / mu) - 1
+    # Perform inverse of mu-law transformation.
+    magnitude = (1 / mu) * ((1 + mu)**torch.abs(signal) - 1)
+    return torch.sign(signal) * magnitude
+
 def mu_law_encode(x, mu_quantization=256):
     assert(torch.max(x) >= -1.0)
     assert(torch.min(x) <= 1.0)

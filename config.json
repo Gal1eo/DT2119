@@ -11,7 +11,7 @@
 
     "data_config": {
         "training_files": "eval_files.txt",
-        "segment_length": 1000000,
+        "segment_length": 44100,
         "mu_quantization": 256,
         "filter_length": 800,
         "sampling_rate": 44100

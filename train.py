@@ -105,7 +105,7 @@ def train(output_directory, epochs, learning_rate,
             music = music.cpu()
             music = music.numpy()
             scaled = np.int16(music)
-            write("a.wav", 44100, scaled)
+            write("a{}.wav".format(iteration), 44100, scaled)
 
             print("{}:\t{:.9f}".format(iteration, reduced_loss))
 

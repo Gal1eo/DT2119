@@ -32,6 +32,13 @@ The network architecture is seen below:
 
 ![Music WaveNet Generate](https://drive.google.com/uc?export=view&id=1AOXf4xBtR8yWU5rxJ0kxA9RNC6HeAE5q)
 
+### Reduced Version
+In order to decrease the complexity of computation, we change the settings as follows:
+
+Total layers: 8
+residual channels: 32
+skip channels: 128
+max dilation: 128
 
 ## Requirements
 
